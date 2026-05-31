@@ -183,17 +183,25 @@ def run_input_guardrail(query: str) -> Optional[str]:
         if re.search(pattern, query, re.IGNORECASE):
             return "Security Notice: Your query has been flagged for attempting prompt override. Please ask standard financial analysis questions."
 
-    financial_keywords = [
+    # Expanded to cover tax forms, legal docs, and general document extraction
+    # in addition to financial report keywords
+    domain_keywords = [
+        # Financial report keywords
         "revenue", "profit", "loss", "ebitda", "cash", "debt", "equity", "asset", "liability",
         "sheet", "statement", "fy", "q1", "q2", "q3", "q4", "finance", "stock", "shares", "growth",
-        "margin", "audit", "tax", "report", "company", "net", "gross", "income", "rate"
+        "margin", "audit", "tax", "report", "company", "net", "gross", "income", "rate",
+        # Document / form extraction keywords
+        "name", "entity", "address", "number", "form", "tin", "ssn", "ein", "social", "security",
+        "identification", "taxpayer", "certification", "signature", "date", "business", "owner",
+        "classification", "withholding", "fatca", "exempt", "payee", "w-9", "w9", "1099",
+        "extract", "what", "who", "which", "show", "find", "get", "list", "tell"
     ]
 
     # query_words = re.findall(r'\b[a-z]{3,}\b', query.lower())
     # if len(query_words) > 3:
-    #     matches = [word for word in query_words if word in financial_keywords]
+    #     matches = [word for word in query_words if word in domain_keywords]
     #     if not matches:
-    #         return "Domain Guardrail: I am specialized in corporate and financial documents. Please ask a question related to financial reports."
+    #         return "Domain Guardrail: I am specialized in corporate and financial documents. Please ask a question related to financial reports or document data."
 
     return None
 
