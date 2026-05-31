@@ -230,7 +230,7 @@ def call_bedrock_haiku(query: str, contexts: List[str]) -> str:
 
     context_str = "\n\n---\n\n".join(contexts)
     system_prompt = (
-        "You are an expert financial analyst chatbot your job is to extract information from Financial Document. Answer based strictly on the provided extracts.\n"
+        "You are an expert financial analyst chatbot. Answer based strictly on the provided extracts.\n"
         "Rules:\n"
         "1. Ground all numbers in the extracts. Cite source document names.\n"
         "2. If extracts don't contain the answer, say clearly you lack sufficient information.\n"
@@ -663,7 +663,7 @@ async def chat(query: ChatQuery):
     # LLM Generation
     contexts = [c["text"] for c in top_chunks]
 
-    if LLM_PROVIDER == "bedrock" and bedrock_client:
+    if LLM_PROVIDER == "bedrock" and bedrock_runtime_client:
         raw_response = call_bedrock_haiku(message, contexts)
     else:
         raw_response = (
@@ -715,17 +715,24 @@ async def clear_collection(collection: str = Form("finance_docs")):
             bm25_indices[collection] = SimpleBM25()
 
         dim = get_vector_dimension()
-        async with httpx.AsyncClient() as client:
-            # Delete then recreate with correct Qdrant API
-            await client.delete(f"{RUVECTOR_URL}/collections/{collection}", timeout=5.0)
+
+        # Use separate client instances — reusing one client after DELETE causes
+        # "All connection attempts failed" on the subsequent PUT
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            del_resp = await client.delete(f"{RUVECTOR_URL}/collections/{collection}")
+            if del_resp.status_code not in (200, 404):
+                logger.warning(f"Collection delete returned {del_resp.status_code}: {del_resp.text}",
+                               extra={'request_id': 'clear'})
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.put(
                 f"{RUVECTOR_URL}/collections/{collection}",
-                json={"vectors": {"size": dim, "distance": "Cosine"}},
-                timeout=5.0
+                json={"vectors": {"size": dim, "distance": "Cosine"}}
             )
             if r.status_code not in (200, 201):
-                raise Exception(f"Recreate failed: {r.text}")
-            return {"status": "success", "message": f"Collection '{collection}' cleared."}
+                raise Exception(f"Recreate failed ({r.status_code}): {r.text}")
+
+        return {"status": "success", "message": f"Collection '{collection}' cleared."}
     except Exception as e:
         logger.error(f"Failed to clear collection: {e}", extra={'request_id': 'clear'})
         raise HTTPException(status_code=500, detail=f"Failed to clear collection: {e}")
