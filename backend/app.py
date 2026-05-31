@@ -189,11 +189,11 @@ def run_input_guardrail(query: str) -> Optional[str]:
         "margin", "audit", "tax", "report", "company", "net", "gross", "income", "rate"
     ]
 
-    query_words = re.findall(r'\b[a-z]{3,}\b', query.lower())
-    if len(query_words) > 3:
-        matches = [word for word in query_words if word in financial_keywords]
-        if not matches:
-            return "Domain Guardrail: I am specialized in corporate and financial documents. Please ask a question related to financial reports."
+    # query_words = re.findall(r'\b[a-z]{3,}\b', query.lower())
+    # if len(query_words) > 3:
+    #     matches = [word for word in query_words if word in financial_keywords]
+    #     if not matches:
+    #         return "Domain Guardrail: I am specialized in corporate and financial documents. Please ask a question related to financial reports."
 
     return None
 
@@ -230,7 +230,7 @@ def call_bedrock_haiku(query: str, contexts: List[str]) -> str:
 
     context_str = "\n\n---\n\n".join(contexts)
     system_prompt = (
-        "You are an expert financial analyst chatbot. Answer based strictly on the provided extracts.\n"
+        "You are an expert financial analyst chatbot your job is to extract information from Financial Document. Answer based strictly on the provided extracts.\n"
         "Rules:\n"
         "1. Ground all numbers in the extracts. Cite source document names.\n"
         "2. If extracts don't contain the answer, say clearly you lack sufficient information.\n"
